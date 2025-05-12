@@ -1,14 +1,42 @@
 <script lang="ts">
-    // Sample data - this would later come from a store or backend
-    let todoLists = [
-        { id: 1, title: 'Work Tasks', description: 'All my work-related todos' },
-        { id: 2, title: 'Shopping List', description: 'Things to buy' },
-        { id: 3, title: 'Personal Goals', description: 'Personal development tasks' }
-    ];
+    import { onMount } from 'svelte';
+
+    let todoLists: Array<{
+        id: number;
+        title: string;
+        description: string;
+    }> = [];
+
+    onMount(async () => {
+        const response = await fetch('/api/lists');
+        todoLists = await response.json();
+    });
+
+    async function createNewList() {
+        const title = prompt('Enter list title:');
+        const description = prompt('Enter list description:');
+        
+        if (title && description) {
+            const response = await fetch('/api/lists', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, description })
+            });
+            
+            const newList = await response.json();
+            todoLists = [...todoLists, newList];
+        }
+    }
 </script>
 
 <div class="p-8">
-    <h2 class="text-3xl font-bold mb-6">Your Todo Lists</h2>
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-3xl font-bold">Your Todo Lists</h2>
+        <button class="btn btn-primary" on:click={createNewList}>
+            Create New List
+        </button>
+    </div>
+    
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {#each todoLists as list}
             <a href="/todos/{list.id}" class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
