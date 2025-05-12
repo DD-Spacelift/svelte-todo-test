@@ -19,6 +19,7 @@ db.exec(`
         list_id INTEGER NOT NULL,
         text TEXT NOT NULL,
         completed BOOLEAN DEFAULT 0,
+        due_date TIMESTAMP NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (list_id) REFERENCES todo_lists(id) ON DELETE CASCADE
     );
@@ -91,9 +92,9 @@ export function createList(title: string, description: string) {
     return result.lastInsertRowid;
 }
 
-export function createItem(listId: number, text: string) {
-    const stmt = db.prepare('INSERT INTO todo_items (list_id, text) VALUES (?, ?)');
-    const result = stmt.run(listId, text);
+export function createItem(listId: number, text: string, dueDate?: string) {
+    const stmt = db.prepare('INSERT INTO todo_items (list_id, text, due_date) VALUES (?, ?, ?)');
+    const result = stmt.run(listId, text, dueDate || null);
     return result.lastInsertRowid;
 }
 
@@ -110,4 +111,48 @@ export function deleteList(id: number) {
 export function deleteItem(id: number) {
     const stmt = db.prepare('DELETE FROM todo_items WHERE id = ?');
     return stmt.run(id);
+}
+
+interface TodoList {
+    id: number;
+    title: string;
+    description: string;
+    created_at: string;
+    items: string;
+}
+
+interface TodoItem {
+    id: number;
+    text: string;
+    completed: boolean;
+    due_date: string | null;
+}
+
+export function getAllListsWithItems() {
+    const lists = db.prepare(`
+        SELECT 
+            l.id, 
+            l.title, 
+            l.description, 
+            l.created_at,
+            (
+                SELECT json_group_array(
+                    json_object(
+                        'id', i2.id,
+                        'text', i2.text,
+                        'completed', i2.completed,
+                        'due_date', i2.due_date
+                    )
+                )
+                FROM todo_items i2 
+                WHERE i2.list_id = l.id AND i2.completed = 0
+            ) as items
+        FROM todo_lists l
+        ORDER BY l.created_at DESC
+    `).all() as TodoList[];
+    
+    return lists.map((list: TodoList) => ({
+        ...list,
+        items: JSON.parse(list.items).filter((item: TodoItem) => item.id !== null)
+    }));
 } 
