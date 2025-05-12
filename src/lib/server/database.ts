@@ -2,74 +2,103 @@ import Database from 'better-sqlite3';
 import { DB_PATH } from '$env/static/private';
 import { dev } from '$app/environment';
 
-// Use in-memory database for development
-export const db = new Database(dev ? ':memory:' : DB_PATH);
+const DB_VERSION = 1; // Current database schema version
 
-// Create tables if they don't exist
+// Check if we should force persistent DB in dev mode
+const forcePersistentDb = process.env.FORCE_PERSISTENT_DB === 'true';
+const useInMemory = dev && !forcePersistentDb;
+
+// Initialize database connection
+export const db = new Database(useInMemory ? ':memory:' : DB_PATH);
+
+// Create version tracking table and check current version
 db.exec(`
-    CREATE TABLE IF NOT EXISTS todo_lists (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        description TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS todo_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        list_id INTEGER NOT NULL,
-        text TEXT NOT NULL,
-        completed BOOLEAN DEFAULT 0,
-        due_date TIMESTAMP NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (list_id) REFERENCES todo_lists(id) ON DELETE CASCADE
+    CREATE TABLE IF NOT EXISTS db_metadata (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
     );
 `);
 
-// Insert initial data if tables are empty
-const todoListCount = db.prepare('SELECT COUNT(*) as count FROM todo_lists').get().count;
+// Get current database version
+interface VersionRow {
+    value: string;
+}
+const versionRow = db.prepare('SELECT value FROM db_metadata WHERE key = ?').get('version') as VersionRow | undefined;
+const currentVersion = versionRow ? parseInt(versionRow.value) : 0;
 
-if (todoListCount === 0) {
-    const insertList = db.prepare('INSERT INTO todo_lists (title, description) VALUES (?, ?)');
-    const insertItem = db.prepare('INSERT INTO todo_items (list_id, text, completed) VALUES (?, ?, ?)');
-
-    const lists = [
-        { 
-            title: 'Work Tasks', 
-            description: 'All my work-related todos',
-            items: [
-                { text: 'Complete project proposal', completed: false },
-                { text: 'Review code changes', completed: true },
-                { text: 'Update documentation', completed: false }
-            ]
-        },
-        { 
-            title: 'Shopping List', 
-            description: 'Things to buy',
-            items: [
-                { text: 'Groceries for the week', completed: false },
-                { text: 'New headphones', completed: false }
-            ]
-        },
-        { 
-            title: 'Personal Goals', 
-            description: 'Personal development tasks',
-            items: [
-                { text: 'Read a chapter of the book', completed: true },
-                { text: 'Go to the gym', completed: false },
-                { text: 'Practice meditation', completed: false }
-            ]
-        }
-    ];
-
+// Initialize or upgrade database if needed
+if (currentVersion < DB_VERSION) {
     db.transaction(() => {
-        lists.forEach(list => {
-            const result = insertList.run(list.title, list.description);
-            const listId = result.lastInsertRowid;
-            
-            list.items.forEach(item => {
-                insertItem.run(listId, item.text, item.completed ? 1 : 0);
-            });
-        });
+        // Create or recreate tables
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS todo_lists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS todo_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                list_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                completed BOOLEAN DEFAULT 0,
+                due_date TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (list_id) REFERENCES todo_lists(id) ON DELETE CASCADE
+            );
+        `);
+
+        // Update database version
+        db.prepare('INSERT OR REPLACE INTO db_metadata (key, value) VALUES (?, ?)').run('version', DB_VERSION.toString());
+        
+        // Insert initial data only for new databases
+        if (currentVersion === 0) {
+            const todoListCount = db.prepare('SELECT COUNT(*) as count FROM todo_lists').get() as { count: number };
+
+            if (todoListCount.count === 0) {
+                const insertList = db.prepare('INSERT INTO todo_lists (title, description) VALUES (?, ?)');
+                const insertItem = db.prepare('INSERT INTO todo_items (list_id, text, completed) VALUES (?, ?, ?)');
+
+                const lists = [
+                    { 
+                        title: 'Work Tasks', 
+                        description: 'All my work-related todos',
+                        items: [
+                            { text: 'Complete project proposal', completed: false },
+                            { text: 'Review code changes', completed: true },
+                            { text: 'Update documentation', completed: false }
+                        ]
+                    },
+                    { 
+                        title: 'Shopping List', 
+                        description: 'Things to buy',
+                        items: [
+                            { text: 'Groceries for the week', completed: false },
+                            { text: 'New headphones', completed: false }
+                        ]
+                    },
+                    { 
+                        title: 'Personal Goals', 
+                        description: 'Personal development tasks',
+                        items: [
+                            { text: 'Read a chapter of the book', completed: true },
+                            { text: 'Go to the gym', completed: false },
+                            { text: 'Practice meditation', completed: false }
+                        ]
+                    }
+                ];
+
+                lists.forEach(list => {
+                    const result = insertList.run(list.title, list.description);
+                    const listId = result.lastInsertRowid;
+                    
+                    list.items.forEach(item => {
+                        insertItem.run(listId, item.text, item.completed ? 1 : 0);
+                    });
+                });
+            }
+        }
     })();
 }
 
