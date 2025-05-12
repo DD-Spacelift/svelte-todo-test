@@ -1,6 +1,59 @@
 # SQL Hack Documentation
 
+⚠️ **DANGER: HERE BE DRAGONS** ⚠️
+
+```
+WARNING: SECURITY BREACH IMMINENT
+============================
+Like opening the airlock in Alien, exposing this endpoint 
+to production is an invitation to catastrophe.
+============================
+```
+
+## 🚨 CRITICAL SECURITY WARNING 🚨
+
+Just as Dr. Ian Malcolm warned about the dangers of genetic power in Jurassic Park, we must warn you about the devastating potential of this SQL hack endpoint. This is a Pandora's box of database access that, if misused, could unleash chaos worthy of a Skynet takeover.
+
+### ⚡ DANGER LEVEL: MAXIMUM ⚡
+
+This endpoint is like the Necronomicon of API endpoints - powerful but potentially catastrophic. It provides raw, unfiltered access to your database, making it as dangerous as:
+- Opening a portal to the Upside Down (Stranger Things)
+- Crossing the streams in Ghostbusters
+- Feeding a Mogwai after midnight
+
+### 🔥 IF YOU DEPLOY THIS TO PRODUCTION 🔥
+
+1. Your database will be as exposed as the crew of the Nostromo
+2. SQL injection attacks will spread faster than the T-virus
+3. Your data security will be as effective as a screen door on a submarine
+
+### 🛑 SERIOUSLY, DO NOT: 🛑
+- Deploy this to production (like, EVER)
+- Expose this endpoint to the internet
+- Use this for anything other than local debugging
+- Let this anywhere near customer data
+
+Remember: "With great power comes great responsibility" - and this endpoint has the power to turn your secure database into a scene from The Matrix where Agent Smith has infiltrated every system.
+
+### 🛡️ PRODUCTION SAFEGUARDS 🛡️
+
+This endpoint is equipped with production safeguards that would make Tony Stark proud:
+- Automatically detects production environment using Svelte's `dev` flag
+- Returns HTTP 451 (Unavailable For Legal Reasons) in production
+- Responds with sci-fi themed error messages that would make Douglas Adams proud
+- Includes an ASCII art warning that would deter even the most determined developer
+- Protected by the same security system that guards the One Ring (metaphorically speaking)
+
+If you try to access this in production, you'll get responses like:
+- "Nice try, but like HAL 9000, I can't let you do that."
+- "This endpoint is as forbidden in production as entering the Matrix with a blue pill."
+- "Warning: Attempting to access this in production may cause a temporal paradox."
+- And more Easter eggs for the cinematically inclined!
+
+---
+
 This document explains the flexible SQL query functionality that allows you to query the todo application's database directly through an HTTP endpoint.
+
 
 ## Overview
 
