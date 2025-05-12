@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit';
-import { getAllLists, createList } from '$lib/server/database';
+import { getAllListsWithItems, createList } from '$lib/server/database';
 
 export async function GET() {
-    const lists = getAllLists();
+    const lists = getAllListsWithItems();
     return json(lists);
 }
 
