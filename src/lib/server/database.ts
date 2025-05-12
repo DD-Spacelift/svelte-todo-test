@@ -3,7 +3,7 @@ import { DB_PATH } from '$env/static/private';
 import { dev } from '$app/environment';
 
 // Use in-memory database for development
-const db = new Database(dev ? ':memory:' : DB_PATH);
+export const db = new Database(dev ? ':memory:' : DB_PATH);
 
 // Create tables if they don't exist
 db.exec(`
